@@ -66,6 +66,11 @@ proc_file = st.file_uploader("📂 Upload **Procurement Items** (CSV/Excel)", ty
 if proc_file:
     proc_df = load_dataframe(proc_file)
 
+    # Fix 1: Drop rows where the procurement item name is empty or NaN
+    nama_col = "Nama Barang dan Spesifikasi" if "Nama Barang dan Spesifikasi" in proc_df.columns else "nama_barang"
+    if nama_col in proc_df.columns:
+        proc_df = proc_df.dropna(subset=[nama_col])
+
     st.subheader("🔎 Preview: Procurement Items")
     st.dataframe(proc_df.head())
 
@@ -94,6 +99,15 @@ if proc_file:
                         item_dict["subkategori"] = item_dict["Sub kategori"]
                     if "Satuan" in item_dict and "satuan" not in item_dict:
                         item_dict["satuan"] = item_dict["Satuan"]
+                    if "Harga Satuan" in item_dict and "harga_satuan" not in item_dict:
+                        item_dict["harga_satuan"] = item_dict["Harga Satuan"]
+
+                    # Fix 3: Split combined nama + spesifikasi when separator exists
+                    raw_nama = str(item_dict.get("nama_barang", ""))
+                    if "Spesifikasi:" in raw_nama and not item_dict.get("spesifikasi"):
+                        parts = raw_nama.split("Spesifikasi:", 1)
+                        item_dict["nama_barang"] = parts[0].strip()
+                        item_dict["spesifikasi"] = parts[1].strip()
                     
                     best_match: Dict[str, Any] = {
                         "candidate": None,
@@ -129,11 +143,15 @@ if proc_file:
                     nama_val = item_dict.get("nama_barang")
                     satuan_val = item_dict.get("satuan")
                     
+                    # Fix 4: Extract harga_satuan reference price
+                    harga_satuan_val = item_dict.get("harga_satuan") or item_dict.get("Harga Satuan")
+
                     # Append summary for this procurement item with specific output schema
                     results.append({
                         "id_item": id_val,
                         "nama_barang": nama_val,
                         "satuan": satuan_val,
+                        "harga_satuan": harga_satuan_val,
                         "comparison_product": cand.get("nama_produk", "N/A"),
                         "comparison_specification": cand.get("spesifikasi", "N/A"),
                         "vendor": cand.get("vendor", "N/A"),
