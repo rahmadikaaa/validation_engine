@@ -1,5 +1,5 @@
 import json
-from reasoning_engine import run_reasoning
+from cognition.reasoning_engine import run_reasoning
 
 test_cases = [
     {
