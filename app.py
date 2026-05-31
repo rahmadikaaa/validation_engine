@@ -324,7 +324,7 @@ def run_validation_logic():
 # Auto-load Default Data
 # ============================================================
 
-DEMO_CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "template_100_shuffled.csv")
+DEMO_CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "sample_procurement.csv")
 
 @st.cache_data(show_spinner=False)
 def load_demo_csv(file_path: str) -> pd.DataFrame:
@@ -349,10 +349,13 @@ if st.session_state.proc_df.empty and not st.session_state.demo_dataset_loaded:
         demo_df = load_demo_csv(DEMO_CSV_PATH)
         if not demo_df.empty:
             st.session_state.proc_df = demo_df
-            st.session_state.uploaded_file_name = "data/template_100_shuffled.csv (Demo)"
+            st.session_state.uploaded_file_name = "data/sample_procurement.csv (Demo)"
             st.session_state.demo_dataset_loaded = True
             st.session_state.using_custom_dataset = False
             st.session_state.auto_loaded = True
+            
+            # Automatically run validation logic for the demo dataset
+            run_validation_logic()
     else:
         st.warning("Demo dataset not found. Please upload a procurement file manually.")
 
@@ -435,7 +438,7 @@ with st.sidebar:
 if st.session_state.using_custom_dataset:
     st.info("📄 Custom Dataset Loaded")
 elif st.session_state.demo_dataset_loaded:
-    st.info("🚀 Demo Dataset Loaded — using data/template_100_shuffled.csv")
+    st.info("🚀 Demo Dataset Loaded — using data/sample_procurement.csv")
 
 
 # ============================================================

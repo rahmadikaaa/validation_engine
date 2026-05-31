@@ -5,3 +5,5 @@ __pycache__/
 *.xlsx
 *.xls
 *.csv
+# Whitelist the demo dataset so it is tracked and deployed
+!data/sample_procurement.csv
