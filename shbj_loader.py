@@ -250,3 +250,94 @@ def compute_coverage(proc_df: pd.DataFrame, shbj_df: pd.DataFrame) -> Dict[str, 
 
     pct = round((matched / total) * 100, 1) if total > 0 else 0.0
     return {"matched": matched, "total": total, "pct": pct}
+
+
+# -----------------------------------------------------------------
+# Potential Savings scan
+# -----------------------------------------------------------------
+
+def compute_potential_savings(proc_df: "pd.DataFrame", shbj_df: "pd.DataFrame") -> "Dict[str, Any]":
+    """Compute potential budget savings by comparing procurement prices to SHBJ 2025.
+
+    For each item where harga_pengadaan > harga_shbj_2025, the positive delta
+    is counted as potential savings.  Items with no SHBJ match or invalid prices
+    are skipped silently.
+
+    Returns:
+        {
+            "total_savings": float,      # sum of over-budget deltas (Rp)
+            "items_over_budget": int,    # count of over-budget items
+            "total_budget": float,       # sum of all valid procurement prices
+            "items_checked": int,        # total items with a valid price
+        }
+    """
+    if proc_df.empty or shbj_df.empty:
+        return {"total_savings": 0.0, "items_over_budget": 0,
+                "total_budget": 0.0, "items_checked": 0}
+
+    # Determine columns
+    if "Nama Barang dan Spesifikasi" in proc_df.columns:
+        nama_col  = "Nama Barang dan Spesifikasi"
+        harga_col = "Harga Satuan"
+        sat_col   = "Satuan"
+        kat_col   = "Kategori"
+    elif "nama_barang" in proc_df.columns:
+        nama_col  = "nama_barang"
+        harga_col = "harga_satuan"
+        sat_col   = "satuan"
+        kat_col   = "kategori"
+    else:
+        return {"total_savings": 0.0, "items_over_budget": 0,
+                "total_budget": 0.0, "items_checked": 0}
+
+    if nama_col not in proc_df.columns or harga_col not in proc_df.columns:
+        return {"total_savings": 0.0, "items_over_budget": 0,
+                "total_budget": 0.0, "items_checked": 0}
+
+    total_savings    = 0.0
+    total_budget     = 0.0
+    items_over_budget = 0
+    items_checked    = 0
+
+    for _, row in proc_df.iterrows():
+        raw_name = str(row.get(nama_col, ""))
+        if not raw_name or raw_name in ("nan", ""):
+            continue
+
+        # Parse harga pengadaan
+        harga_numeric = _parse_rp(str(row.get(harga_col, "")))
+        if harga_numeric is None or harga_numeric <= 0:
+            continue
+
+        total_budget += harga_numeric
+        items_checked += 1
+
+        sat = str(row.get(sat_col, "")) if sat_col in proc_df.columns else ""
+        kat = str(row.get(kat_col, "")) if kat_col in proc_df.columns else ""
+
+        # Find SHBJ 2025 match (spec left empty for speed)
+        match = find_shbj_match(
+            item_name=raw_name,
+            item_spec="",
+            item_satuan=sat,
+            item_kategori=kat,
+            shbj_df=shbj_df,
+        )
+        if match is None:
+            continue
+
+        harga_shbj = match.get("est_harga_2025") or match.get("harga_satuan_shbj")
+        if harga_shbj is None or harga_shbj <= 0:
+            continue
+
+        if harga_numeric > harga_shbj:
+            total_savings    += harga_numeric - harga_shbj
+            items_over_budget += 1
+
+    return {
+        "total_savings":     total_savings,
+        "items_over_budget": items_over_budget,
+        "total_budget":      total_budget,
+        "items_checked":     items_checked,
+    }
+

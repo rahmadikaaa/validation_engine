@@ -763,5 +763,665 @@ hr {
 .text-green { color: var(--green-400) !important; }
 .text-red { color: var(--red-400) !important; }
 
+/* ============================================================
+   Procurement Items Table — Custom Interactive Table
+   ============================================================ */
+
+.proc-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+}
+
+.proc-table-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 140px 140px 110px 130px 200px;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(14, 26, 46, 0.8);
+    border: 1px solid rgba(30, 58, 95, 0.5);
+    border-radius: 10px 10px 0 0;
+    margin-bottom: 4px;
+}
+
+.proc-table-header-cell {
+    color: var(--slate-400);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.proc-table-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 140px 140px 110px 130px 200px;
+    gap: 8px;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(26, 39, 66, 0.5) 0%, rgba(14, 26, 46, 0.7) 100%);
+    border: 1px solid rgba(30, 58, 95, 0.35);
+    border-radius: 8px;
+    margin-bottom: 3px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.proc-table-row:hover {
+    border-color: rgba(13, 148, 136, 0.35);
+    background: linear-gradient(135deg, rgba(26, 39, 66, 0.7) 0%, rgba(14, 26, 46, 0.85) 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.proc-table-row.selected {
+    border-color: rgba(13, 148, 136, 0.6);
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(14, 26, 46, 0.85) 100%);
+    box-shadow: 0 4px 16px rgba(13, 148, 136, 0.12);
+}
+
+.proc-cell-id {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: 'Inter', monospace;
+}
+
+.proc-cell-name {
+    color: var(--slate-100);
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.proc-cell-category {
+    color: var(--slate-400);
+    font-size: 0.78rem;
+}
+
+.proc-cell-price {
+    color: var(--gold-400);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.confidence-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.confidence-pill.high {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--green-400);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.confidence-pill.medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--gold-400);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.confidence-pill.low {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red-400);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.confidence-pill.none {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--slate-400);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* ============================================================
+   Detail Drawer
+   ============================================================ */
+
+.detail-drawer {
+    background: linear-gradient(180deg, rgba(10, 22, 40, 0.95) 0%, rgba(6, 15, 30, 0.98) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.35);
+    border-radius: 14px;
+    padding: 0;
+    margin: 12px 0 20px 0;
+    overflow: hidden;
+    animation: fadeInUp 0.35s ease forwards;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(13, 148, 136, 0.1);
+}
+
+.drawer-header {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.12) 0%, rgba(26, 39, 66, 0.6) 100%);
+    border-bottom: 1px solid rgba(30, 58, 95, 0.4);
+    padding: 20px 28px;
+}
+
+.drawer-section {
+    padding: 20px 28px;
+    border-bottom: 1px solid rgba(30, 58, 95, 0.25);
+}
+
+.drawer-section:last-child {
+    border-bottom: none;
+}
+
+.drawer-section-title {
+    color: var(--teal-400);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================================
+   Extracted Specification Grid
+   ============================================================ */
+
+.spec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.spec-attr {
+    background: rgba(26, 39, 66, 0.5);
+    border: 1px solid rgba(30, 58, 95, 0.4);
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: border-color 0.2s ease;
+}
+
+.spec-attr:hover {
+    border-color: rgba(13, 148, 136, 0.3);
+}
+
+.spec-attr-label {
+    color: var(--slate-500);
+    font-size: 0.67rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+.spec-attr-value {
+    color: var(--slate-200);
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* ============================================================
+   Validation Checklist
+   ============================================================ */
+
+.checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.checklist-item.pass {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.checklist-item.review {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.checklist-item.fail {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.checklist-item.unknown {
+    background: rgba(148, 163, 184, 0.05);
+    border-color: rgba(148, 163, 184, 0.15);
+}
+
+.checklist-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.checklist-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    flex: 1;
+}
+
+.checklist-item.pass .checklist-label { color: var(--green-400); }
+.checklist-item.review .checklist-label { color: var(--gold-400); }
+.checklist-item.fail .checklist-label { color: var(--red-400); }
+.checklist-item.unknown .checklist-label { color: var(--slate-400); }
+
+.checklist-status-text {
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.checklist-item.pass .checklist-status-text {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--green-400);
+}
+.checklist-item.review .checklist-status-text {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--gold-400);
+}
+.checklist-item.fail .checklist-status-text {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red-400);
+}
+.checklist-item.unknown .checklist-status-text {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--slate-400);
+}
+
+/* ============================================================
+   Candidate Comparison Table
+   ============================================================ */
+
+.cand-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 4px;
+}
+
+.cand-table-header {
+    display: grid;
+    grid-template-columns: 90px 130px 1fr 110px 130px 90px 110px 110px 120px;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(14, 26, 46, 0.8);
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+.cand-table-header-cell {
+    color: var(--slate-500);
+    font-size: 0.67rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cand-table-row {
+    display: grid;
+    grid-template-columns: 90px 130px 1fr 110px 130px 90px 110px 110px 120px;
+    gap: 6px;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(26, 39, 66, 0.4);
+    border: 1px solid rgba(30, 58, 95, 0.3);
+    border-radius: 8px;
+    margin-bottom: 3px;
+    transition: border-color 0.2s ease;
+}
+
+.cand-table-row:hover {
+    border-color: rgba(13, 148, 136, 0.3);
+    background: rgba(26, 39, 66, 0.6);
+}
+
+.cand-table-row.selected-cand {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.cand-table-row.rejected-cand {
+    opacity: 0.4;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.source-badge.inaproc {
+    background: rgba(13, 148, 136, 0.2);
+    color: var(--teal-400);
+    border: 1px solid rgba(13, 148, 136, 0.35);
+}
+
+.source-badge.tokopedia {
+    background: rgba(78, 205, 196, 0.12);
+    color: #4ECDC4;
+    border: 1px solid rgba(78, 205, 196, 0.25);
+}
+
+.source-badge.shopee {
+    background: rgba(245, 101, 39, 0.12);
+    color: #F5652A;
+    border: 1px solid rgba(245, 101, 39, 0.25);
+}
+
+.source-badge.vendor {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--gold-400);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.location-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.location-badge.jakarta {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818CF8;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.location-badge.jabodetabek {
+    background: rgba(139, 92, 246, 0.12);
+    color: #A78BFA;
+    border: 1px solid rgba(139, 92, 246, 0.22);
+}
+
+.location-badge.national {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--slate-400);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.deviation-cell {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.deviation-cell.positive { color: var(--red-400); }
+.deviation-cell.negative { color: var(--green-400); }
+.deviation-cell.neutral { color: var(--slate-400); }
+
+/* ============================================================
+   Procurement Reasoning Block
+   ============================================================ */
+
+.reasoning-block {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.06) 0%, rgba(26, 39, 66, 0.5) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.2);
+    border-radius: 10px;
+    padding: 18px 22px;
+}
+
+.reasoning-verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+}
+
+.reasoning-verdict.valid {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--green-400);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.reasoning-verdict.partial {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--gold-400);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.reasoning-verdict.invalid {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red-400);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.reasoning-bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    color: var(--slate-300);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.reasoning-bullet::before {
+    content: '→';
+    color: var(--teal-500);
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.reasoning-summary {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: rgba(14, 26, 46, 0.5);
+    border-radius: 8px;
+    border-left: 3px solid var(--teal-600);
+    color: var(--slate-300);
+    font-size: 0.83rem;
+    line-height: 1.6;
+    font-style: italic;
+}
+
+/* ============================================================
+   High Deviation Warning
+   ============================================================ */
+
+.deviation-warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(14, 26, 46, 0.7) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 12px;
+}
+
+.deviation-warning-title {
+    color: var(--gold-400);
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.deviation-warning-reason {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 3px 0;
+    color: var(--slate-400);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.deviation-warning-reason::before {
+    content: '•';
+    color: var(--gold-500);
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   Item Info Header (in Drawer)
+   ============================================================ */
+
+.drawer-item-header {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.drawer-info-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-info-label {
+    color: var(--slate-500);
+    font-size: 0.67rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+.drawer-info-value {
+    color: var(--slate-100);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.drawer-info-value.price {
+    color: var(--gold-400);
+    font-size: 1.05rem;
+}
+
+/* ============================================================
+   Savings Banner — Dashboard business value highlight
+   ============================================================ */
+
+.savings-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10) 0%, rgba(251, 191, 36, 0.05) 60%, rgba(14, 26, 46, 0.4) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.30);
+    border-left: 4px solid var(--gold-500);
+    border-radius: 12px;
+    padding: 18px 28px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.savings-banner .sb-icon {
+    font-size: 2.2rem;
+    flex-shrink: 0;
+}
+
+.savings-banner .sb-block {
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+}
+
+.savings-banner .sb-label {
+    color: var(--slate-400);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 3px;
+}
+
+.savings-banner .sb-value {
+    color: var(--gold-400);
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.savings-banner .sb-sub {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+    margin-top: 3px;
+}
+
+.savings-banner .sb-divider {
+    width: 1px;
+    height: 52px;
+    background: rgba(245, 158, 11, 0.2);
+    flex-shrink: 0;
+}
+
+.savings-banner .sb-message {
+    flex: 1;
+    color: var(--slate-300);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    min-width: 200px;
+}
+
+.savings-banner .sb-message strong {
+    color: var(--gold-300);
+}
+
+/* ============================================================
+   Kewajaran Chip — inline SHBJ status indicator
+   ============================================================ */
+
+.kewajaran-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+
+.kewajaran-chip.wajar {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34D399;
+    border: 1px solid rgba(16, 185, 129, 0.30);
+}
+
+.kewajaran-chip.perhatian {
+    background: rgba(245, 158, 11, 0.15);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.30);
+}
+
+.kewajaran-chip.deviasi {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+    border: 1px solid rgba(239, 68, 68, 0.30);
+}
+
 </style>
 """
+
