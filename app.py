@@ -48,6 +48,11 @@ from mock_data import (
     format_currency_full,
     MOCK_VENDORS,
 )
+from shbj_loader import (
+    load_shbj_data,
+    find_shbj_match,
+    compute_coverage,
+)
 
 
 # ============================================================
@@ -81,6 +86,12 @@ if "selected_item_name" not in st.session_state:
     st.session_state.selected_item_name = None
 if "auto_loaded" not in st.session_state:
     st.session_state.auto_loaded = False
+if "shbj_df" not in st.session_state:
+    st.session_state.shbj_df = pd.DataFrame()
+if "shbj_loaded" not in st.session_state:
+    st.session_state.shbj_loaded = False
+if "shbj_coverage" not in st.session_state:
+    st.session_state.shbj_coverage = {"matched": 0, "total": 0, "pct": 0.0}
 
 
 # ============================================================
@@ -287,6 +298,17 @@ if st.session_state.proc_df.empty and not st.session_state.auto_loaded:
         st.session_state.uploaded_file_name = "shbj only me.xlsx (Auto)"
         st.session_state.auto_loaded = True
 
+# Auto-load SHBJ 2025 reference data (runs once per session)
+if not st.session_state.shbj_loaded:
+    with st.spinner("⏳ Memuat data SHBJ 2025..."):
+        shbj_df = load_shbj_data()
+        st.session_state.shbj_df = shbj_df
+        st.session_state.shbj_loaded = True
+        if not shbj_df.empty and not st.session_state.proc_df.empty:
+            st.session_state.shbj_coverage = compute_coverage(
+                st.session_state.proc_df, shbj_df
+            )
+
 
 # ============================================================
 # Sidebar
@@ -443,13 +465,24 @@ if page == "📊 Dashboard Overview":
         st.markdown('<div class="spacer-sm"></div>', unsafe_allow_html=True)
 
         # KPI Row 2
-        c4, c5, c6 = st.columns(3)
+        c4, c5, c6, c7 = st.columns(4)
         with c4:
             st.markdown(render_kpi_card("❌", "Invalid", str(invalid_count), "perlu review manual", "red"), unsafe_allow_html=True)
         with c5:
             st.markdown(render_kpi_card("📊", "Rata-rata Skor", f"{avg_score:.0%}", "confidence AI", "teal"), unsafe_allow_html=True)
         with c6:
             st.markdown(render_kpi_card("🏢", "Total Vendor", str(total_vendors), f"avg deviasi: {avg_dev}", "gold"), unsafe_allow_html=True)
+        with c7:
+            cov = st.session_state.shbj_coverage
+            cov_pct = cov.get("pct", 0)
+            cov_matched = cov.get("matched", 0)
+            cov_total = cov.get("total", total_items)
+            st.markdown(render_kpi_card(
+                "📚", "Histori SHBJ 2025",
+                f"{cov_pct:.0f}%",
+                f"{cov_matched} dari {cov_total} item cocok",
+                "teal"
+            ), unsafe_allow_html=True)
 
         st.markdown('<div class="spacer-lg"></div>', unsafe_allow_html=True)
 
@@ -470,13 +503,24 @@ if page == "📊 Dashboard Overview":
 
     else:
         # Pre-validation state
-        c1, c2, c3 = st.columns(3)
+        cov = st.session_state.shbj_coverage
+        cov_pct = cov.get("pct", 0)
+        cov_matched = cov.get("matched", 0)
+        cov_total = cov.get("total", total_items)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.markdown(render_kpi_card("📦", "Total Item", str(total_items), "dari data pengadaan", "teal"), unsafe_allow_html=True)
         with c2:
             st.markdown(render_kpi_card("⏳", "Status Validasi", "Belum", "jalankan validasi", "amber"), unsafe_allow_html=True)
         with c3:
             st.markdown(render_kpi_card("🤖", "AI Engine", "Ready", "reasoning engine aktif", "green"), unsafe_allow_html=True)
+        with c4:
+            st.markdown(render_kpi_card(
+                "📚", "Histori SHBJ 2025",
+                f"{cov_pct:.0f}%",
+                f"{cov_matched} dari {cov_total} item cocok",
+                "teal"
+            ), unsafe_allow_html=True)
 
         st.markdown('<div class="spacer-lg"></div>', unsafe_allow_html=True)
 
@@ -652,7 +696,7 @@ elif page == "🔍 Item Detail":
             t1, t2, t3, t4, t5 = st.tabs([
                 "📋 Overview",
                 "🤖 Analisis AI",
-                "📊 Riwayat Anggaran",
+                "📊 Riwayat Anggaran SHBJ 2025",
                 "🏢 Riwayat Vendor",
                 "📄 Ekspor Justifikasi",
             ])
@@ -722,61 +766,160 @@ elif page == "🔍 Item Detail":
                         st.markdown("#### ⚠️ Catatan Deviasi")
                         st.warning(result_row["deviation_notes"])
 
-            # ---- TAB 3: Budget History ----
+            # ---- TAB 3: SHBJ 2025 Budget History ----
             with t3:
-                st.markdown("#### 📊 Riwayat Anggaran (2023 — 2025)")
+                st.markdown("#### 📊 Riwayat Anggaran 2025 — Data Riil SHBJ DKI Jakarta")
+                st.caption("Selain validasi pembanding, sistem membandingkan item dengan histori SHBJ 2025 untuk menilai kewajaran harga dan mendukung justifikasi pengadaan.")
 
+                # Parse current procurement price
                 try:
                     harga_numeric = float(pd.to_numeric(harga_val, errors='coerce'))
+                    if pd.isna(harga_numeric):
+                        harga_numeric = None
                 except (ValueError, TypeError):
                     harga_numeric = None
 
-                if harga_numeric and pd.notna(harga_numeric):
-                    history = get_budget_history(selected_name, harga_numeric)
-                    hist_df = pd.DataFrame(history)
+                # Get spec from item dict
+                item_spec = str(item_dict.get("Spesifikasi") or item_dict.get("spesifikasi") or "")
+                item_satuan_raw = str(sat_val) if sat_val != "N/A" else ""
+                item_kat_raw = str(kat_val) if kat_val != "N/A" else ""
 
-                    # Display table
-                    display_hist = hist_df.copy()
-                    display_hist["harga_formatted"] = display_hist["harga_satuan"].apply(format_currency_full)
+                # Search SHBJ 2025
+                shbj_match = find_shbj_match(
+                    item_name=selected_name,
+                    item_spec=item_spec,
+                    item_satuan=item_satuan_raw,
+                    item_kategori=item_kat_raw,
+                    shbj_df=st.session_state.shbj_df,
+                )
 
-                    # Calculate YoY delta
-                    deltas = ["—"]
-                    for i in range(1, len(display_hist)):
-                        prev = display_hist.iloc[i-1]["harga_satuan"]
-                        curr = display_hist.iloc[i]["harga_satuan"]
-                        if prev > 0:
-                            pct = ((curr - prev) / prev) * 100
-                            deltas.append(f"{pct:+.1f}%")
+                if shbj_match:
+                    harga_shbj_ref = shbj_match.get("harga_satuan_shbj")
+                    harga_est_2025 = shbj_match.get("est_harga_2025")
+                    # Prefer est_harga_2025 as the canonical SHBJ 2025 price
+                    harga_shbj = harga_est_2025 if harga_est_2025 else harga_shbj_ref
+                    match_type_label = {
+                        "exact_name_spec": "✅ Kecocokan nama + spesifikasi",
+                        "exact_name": "🔎 Kecocokan nama",
+                        "category_fallback": "📂 Fallback kategori",
+                    }.get(shbj_match.get("match_type", ""), "🔎 Kecocokan")
+
+                    # Compute delta vs current procurement price
+                    if harga_numeric and harga_shbj:
+                        selisih = harga_numeric - harga_shbj
+                        perubahan_pct = (selisih / harga_shbj) * 100
+                        selisih_str = format_currency_full(abs(selisih))
+                        selisih_sign = "+" if selisih >= 0 else "-"
+                        perubahan_str = f"{perubahan_pct:+.2f}%"
+                        color_delta = "#EF4444" if selisih > 0 else "#10B981"
+                    else:
+                        selisih = None
+                        selisih_str = "N/A"
+                        perubahan_str = "N/A"
+                        selisih_sign = ""
+                        color_delta = "#94A3B8"
+
+                    # --- Comparison Card ---
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(26,39,66,0.6));
+                                border: 1px solid rgba(13,148,136,0.25); border-radius: 12px;
+                                padding: 20px 24px; margin-bottom: 16px;">
+                        <div style="color: #14B8A6; font-size: 0.72rem; font-weight: 600;
+                                    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;">
+                            📚 Riwayat Anggaran SHBJ 2025 &nbsp;|&nbsp;
+                            <span style="color: #94A3B8; font-weight: 400;">{match_type_label}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <div style="color: #64748B; font-size: 0.7rem; text-transform: uppercase;
+                                            letter-spacing: 0.05em; margin-bottom: 4px;">Harga SHBJ 2025</div>
+                                <div style="color: #F1F5F9; font-size: 1.15rem; font-weight: 700;">
+                                    {format_currency_full(harga_shbj) if harga_shbj else 'N/A'}
+                                </div>
+                                <div style="color: #64748B; font-size: 0.7rem; margin-top: 2px;">
+                                    {('Ref: ' + format_currency_full(harga_shbj_ref)) if harga_shbj_ref and harga_shbj_ref != harga_shbj else ''}
+                                </div>
+                            </div>
+                            <div>
+                                <div style="color: #64748B; font-size: 0.7rem; text-transform: uppercase;
+                                            letter-spacing: 0.05em; margin-bottom: 4px;">Harga Pengadaan Saat Ini</div>
+                                <div style="color: #FBBF24; font-size: 1.15rem; font-weight: 700;">
+                                    {format_currency_full(harga_numeric) if harga_numeric else 'N/A'}
+                                </div>
+                            </div>
+                            <div>
+                                <div style="color: #64748B; font-size: 0.7rem; text-transform: uppercase;
+                                            letter-spacing: 0.05em; margin-bottom: 4px;">Selisih</div>
+                                <div style="color: {color_delta}; font-size: 1.1rem; font-weight: 700;">
+                                    {selisih_sign + selisih_str if selisih is not None else 'N/A'}
+                                </div>
+                            </div>
+                            <div>
+                                <div style="color: #64748B; font-size: 0.7rem; text-transform: uppercase;
+                                            letter-spacing: 0.05em; margin-bottom: 4px;">Perubahan</div>
+                                <div style="color: {color_delta}; font-size: 1.1rem; font-weight: 700;">
+                                    {perubahan_str}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid rgba(30,58,95,0.3); padding-top: 12px;
+                                    display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div>
+                                <span style="color: #64748B; font-size: 0.7rem;">Nama SHBJ:</span>
+                                <span style="color: #CBD5E1; font-size: 0.8rem; margin-left: 6px;">{shbj_match.get('shbj_nama', 'N/A')}</span>
+                            </div>
+                            <div>
+                                <span style="color: #64748B; font-size: 0.7rem;">Spesifikasi:</span>
+                                <span style="color: #CBD5E1; font-size: 0.8rem; margin-left: 6px;">{shbj_match.get('shbj_spesifikasi', 'N/A')[:80]}</span>
+                            </div>
+                            <div>
+                                <span style="color: #64748B; font-size: 0.7rem;">Satuan:</span>
+                                <span style="color: #CBD5E1; font-size: 0.8rem; margin-left: 6px;">{shbj_match.get('shbj_satuan', 'N/A')}</span>
+                            </div>
+                            <div>
+                                <span style="color: #64748B; font-size: 0.7rem;">Status:</span>
+                                <span style="color: #CBD5E1; font-size: 0.8rem; margin-left: 6px;">{shbj_match.get('keterangan', 'N/A')}</span>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # --- Comparison Chart ---
+                    if harga_shbj and harga_numeric:
+                        st.markdown("#### 📈 Perbandingan Harga")
+                        chart_compare = pd.DataFrame({
+                            "Label": ["Harga SHBJ 2025", "Harga Pengadaan"],
+                            "Harga (Rp)": [harga_shbj, harga_numeric],
+                        }).set_index("Label")
+                        st.bar_chart(chart_compare, color="#0D9488")
+
+                    # --- Waiver assessment ---
+                    st.markdown('<div class="spacer-sm"></div>', unsafe_allow_html=True)
+                    if selisih is not None and harga_shbj:
+                        if abs(perubahan_pct) <= 5:
+                            st.success(f"✅ **Harga Wajar** — Deviasi {perubahan_str} dari SHBJ 2025, dalam batas toleransi (≤5%).")
+                        elif abs(perubahan_pct) <= 15:
+                            st.warning(f"⚠️ **Perlu Perhatian** — Deviasi {perubahan_str} dari SHBJ 2025. Pastikan ada justifikasi yang memadai.")
                         else:
-                            deltas.append("N/A")
-                    display_hist["delta_yoy"] = deltas
+                            st.error(f"❌ **Deviasi Signifikan** — Harga pengadaan berbeda {perubahan_str} dari SHBJ 2025. Wajib review dan justifikasi khusus.")
 
-                    st.dataframe(
-                        display_hist[["tahun", "harga_formatted", "sumber", "keterangan", "delta_yoy"]].rename(columns={
-                            "tahun": "Tahun",
-                            "harga_formatted": "Harga Satuan",
-                            "sumber": "Sumber",
-                            "keterangan": "Keterangan",
-                            "delta_yoy": "Delta YoY",
-                        }),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
+                    st.markdown('<div class="spacer-sm"></div>', unsafe_allow_html=True)
+                    st.caption(f"📋 Sumber: SHBJ DKI Jakarta 2025 — ID {shbj_match.get('shbj_id', 'N/A')} | Kategori: {shbj_match.get('shbj_kategori', 'N/A')}")
 
-                    st.markdown('<div class="spacer-md"></div>', unsafe_allow_html=True)
-
-                    # Price trend chart
-                    st.markdown("#### 📈 Tren Harga 3 Tahun")
-                    chart_df = hist_df[["tahun", "harga_satuan"]].copy()
-                    chart_df["tahun"] = chart_df["tahun"].astype(str)
-                    chart_df = chart_df.set_index("tahun")
-                    chart_df.columns = ["Harga Satuan (Rp)"]
-                    st.line_chart(chart_df, color="#0D9488")
-
-                    st.markdown('<div class="spacer-md"></div>', unsafe_allow_html=True)
-                    st.info("📋 **Sumber data:** SHBJ DKI Jakarta (Standar Harga Barang Jasa). Data 2023-2024 merupakan data historis, data 2025 merupakan anggaran aktif.")
                 else:
-                    st.info("ℹ️ Data harga tidak tersedia untuk item ini.")
+                    st.info("ℹ️ **Tidak ditemukan histori anggaran 2025.** Item ini belum ada padanannya dalam data SHBJ DKI Jakarta 2025.")
+                    # Still show mock historical trend as supplementary context
+                    if harga_numeric:
+                        st.markdown('<div class="spacer-md"></div>', unsafe_allow_html=True)
+                        st.markdown("#### 📈 Tren Anggaran Estimasi (Mock)")
+                        st.caption("Data historis estimasi — belum ditemukan data riil SHBJ 2025 untuk item ini.")
+                        history = get_budget_history(selected_name, harga_numeric)
+                        hist_df = pd.DataFrame(history)
+                        chart_df = hist_df[["tahun", "harga_satuan"]].copy()
+                        chart_df["tahun"] = chart_df["tahun"].astype(str)
+                        chart_df = chart_df.set_index("tahun")
+                        chart_df.columns = ["Harga Satuan (Rp)"]
+                        st.line_chart(chart_df, color="#F59E0B")
 
             # ---- TAB 4: Vendor History ----
             with t4:
