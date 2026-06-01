@@ -1422,6 +1422,212 @@ hr {
     border: 1px solid rgba(239, 68, 68, 0.30);
 }
 
+/* ============================================================
+   App Shell — Top-level layout wrapper
+   ============================================================ */
+
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ============================================================
+   Topbar — Page-level header strip
+   ============================================================ */
+
+.topbar {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.10) 0%, rgba(245, 158, 11, 0.04) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.18);
+    border-radius: 14px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.topbar-title {
+    background: linear-gradient(135deg, var(--teal-400), var(--gold-400));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.topbar-subtitle {
+    color: var(--slate-400);
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+
+.topbar-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   Detail Grid — Two-column enterprise item detail layout
+   ============================================================ */
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 16px;
+}
+
+.detail-grid-left,
+.detail-grid-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-card {
+    background: linear-gradient(135deg, rgba(26, 39, 66, 0.6) 0%, rgba(14, 26, 46, 0.8) 100%);
+    border: 1px solid rgba(30, 58, 95, 0.4);
+    border-radius: 12px;
+    padding: 20px 24px;
+    transition: border-color 0.2s ease;
+}
+
+.detail-card:hover {
+    border-color: rgba(13, 148, 136, 0.25);
+}
+
+.detail-card-title {
+    color: var(--teal-400);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+@media (max-width: 900px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   Comparison Table — Standalone wrapper for candidate tables
+   ============================================================ */
+
+.comparison-table {
+    background: rgba(14, 26, 46, 0.4);
+    border: 1px solid rgba(30, 58, 95, 0.35);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.comparison-table-header {
+    background: rgba(14, 26, 46, 0.7);
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(30, 58, 95, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.comparison-table-title {
+    color: var(--teal-400);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.comparison-table-count {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+    font-weight: 500;
+}
+
+.comparison-table-body {
+    padding: 12px 16px;
+}
+
+/* ============================================================
+   Reasoning Box — Standalone procurement reasoning block
+   ============================================================ */
+
+.reasoning-box {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.07) 0%, rgba(26, 39, 66, 0.55) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.22);
+    border-left: 4px solid var(--teal-600);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 8px 0;
+}
+
+.reasoning-box-title {
+    color: var(--teal-400);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reasoning-box-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+}
+
+.reasoning-box-status.valid {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--green-400);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.reasoning-box-status.partial {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--gold-400);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.reasoning-box-status.invalid {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red-400);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.reasoning-box-note {
+    color: var(--slate-400);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(14, 26, 46, 0.4);
+    border-radius: 8px;
+    font-style: italic;
+}
+
 </style>
 """
 

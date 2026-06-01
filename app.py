@@ -1597,14 +1597,40 @@ elif page == "🔍 Item Detail":
                         "exact_name":      "🔎 Kecocokan nama",
                         "category_fallback": "📂 Fallback kategori",
                     }.get(shbj_match.get("match_type", ""), "🔎 Kecocokan")
-                    st.caption(f"Sumber SHBJ: {match_label}  ·  ID: {shbj_match.get('shbj_id', 'N/A')}  ·  Kategori: {shbj_match.get('shbj_kategori', 'N/A')}")
+
+                    # Compute deviation for chip rendering
+                    _t2_pct_abs = None
+                    _t2_pct_val = None
+                    if harga_shbj and harga_numeric and harga_shbj > 0:
+                        _t2_pct_val = (harga_numeric - harga_shbj) / harga_shbj * 100
+                        _t2_pct_abs = abs(_t2_pct_val)
+
+                    # Kewajaran chip
+                    if _t2_pct_abs is not None:
+                        if _t2_pct_abs <= 5:
+                            _chip_html = '<span class="kewajaran-chip wajar">✅ Harga Wajar</span>'
+                        elif _t2_pct_abs <= 15:
+                            _chip_html = '<span class="kewajaran-chip perhatian">⚠️ Perlu Perhatian</span>'
+                        else:
+                            _chip_html = '<span class="kewajaran-chip deviasi">❌ Deviasi Signifikan</span>'
+                    else:
+                        _chip_html = ''
+
+                    st.markdown(
+                        f'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">'
+                        f'<span style="color:#64748B;font-size:0.75rem;">Sumber SHBJ: {match_label} &nbsp;|&nbsp; '
+                        f'ID: {shbj_match.get("shbj_id", "N/A")} &nbsp;|&nbsp; '
+                        f'Kategori: {shbj_match.get("shbj_kategori", "N/A")}</span>'
+                        f'{_chip_html}</div>',
+                        unsafe_allow_html=True
+                    )
 
                     pc1, pc2, pc3 = st.columns(3)
                     pc1.metric("Harga SHBJ 2025",   format_currency_full(harga_shbj) if harga_shbj else "N/A")
                     pc2.metric("Harga Pengadaan",   format_currency_full(harga_numeric) if harga_numeric else "N/A")
                     if harga_shbj and harga_numeric:
                         delta_val = harga_numeric - harga_shbj
-                        pct_val   = (delta_val / harga_shbj) * 100
+                        pct_val   = _t2_pct_val
                         pc3.metric("Deviasi", f"{pct_val:+.1f}%",
                                    delta=f"Rp {abs(delta_val):,.0f}".replace(",", "."),
                                    delta_color="inverse")
@@ -1619,7 +1645,7 @@ elif page == "🔍 Item Detail":
                         )
                         st.bar_chart(chart_cmp, color="#0D9488")
 
-                        pct_abs = abs(pct_val)
+                        pct_abs = _t2_pct_abs
                         if pct_abs <= 5:
                             st.success(f"✅ Harga wajar — deviasi {pct_abs:.1f}% dalam batas toleransi (≤5%)")
                         elif pct_abs <= 15:
@@ -1839,7 +1865,7 @@ elif page == "🔍 Item Detail":
                         unsafe_allow_html=True,
                     )
                     st.markdown("---")
-                    jcol1, jcol2 = st.columns(2)
+                    jcol1, jcol2, jcol3 = st.columns(3)
                     with jcol1:
                         docx_bytes = generate_justification_docx(item_dict, result_row)
                         if docx_bytes:
@@ -1861,6 +1887,46 @@ elif page == "🔍 Item Detail":
                             mime="text/plain",
                             use_container_width=True,
                         )
+                    with jcol3:
+                        # Single-item CSV export — enriched with SHBJ comparison data
+                        try:
+                            _shbj_m = find_shbj_match(
+                                item_name=selected_name,
+                                item_spec=str(item_dict.get("spesifikasi") or item_dict.get("Spesifikasi") or ""),
+                                item_satuan=str(item_dict.get("satuan") or item_dict.get("Satuan") or ""),
+                                item_kategori=str(item_dict.get("kategori") or item_dict.get("Kategori") or ""),
+                                shbj_df=st.session_state.shbj_df,
+                            )
+                            _csv_row = {
+                                "ID": item_dict.get("id_item") or item_dict.get("ID") or "N/A",
+                                "Nama Barang": selected_name,
+                                "Kategori": item_dict.get("kategori") or item_dict.get("Kategori") or "N/A",
+                                "Satuan": item_dict.get("satuan") or item_dict.get("Satuan") or "N/A",
+                                "Harga Pengadaan": format_currency_full(item_dict.get("harga_satuan") or item_dict.get("Harga Satuan") or 0),
+                                "Harga SHBJ 2025": format_currency_full(_shbj_m.get("est_harga_2025") or _shbj_m.get("harga_satuan_shbj") or 0) if _shbj_m else "N/A",
+                                "Status Validasi": result_row.get("status", "N/A"),
+                                "Confidence Score": f"{round(float(result_row.get('score', 0)) * 100)}%",
+                                "Vendor Pembanding": result_row.get("vendor", "N/A"),
+                                "Produk Pembanding": result_row.get("comparison_product", "N/A"),
+                                "Catatan Deviasi": result_row.get("deviation_notes", ""),
+                            }
+                            _csv_data = pd.DataFrame([_csv_row]).to_csv(index=False, encoding="utf-8")
+                            st.download_button(
+                                "📊 Download Data Item (.csv)",
+                                data=_csv_data.encode("utf-8"),
+                                file_name=f"item_{str(selected_name)[:30].replace(' ', '_')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                            )
+                        except Exception:
+                            # Fallback: plain result_row CSV
+                            st.download_button(
+                                "📊 Download Data Item (.csv)",
+                                data=pd.DataFrame([result_row]).to_csv(index=False).encode("utf-8"),
+                                file_name=f"item_{str(selected_name)[:30].replace(' ', '_')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                            )
 
 
 # ============================================================
